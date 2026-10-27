@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      :root {
+        --canvas: #f2f6fd;
+        --surface: #ffffff;
+        --ink: #0b1733;
+        --ink-2: #3e4a63;
+        --muted: #66708a;
+        --accent: #2e6fef;
+        --accent-2: #3978f6;
+        --accent-soft: #e7f0ff;
+        --line: #dfe7f5;
+        --ok: #2fa36b;
+      }
+      html, body { width: 1280px; height: 640px; overflow: hidden; }
+      body {
+        font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: var(--canvas);
+        position: relative;
+        -webkit-font-smoothing: antialiased;
+      }
+      .grid {
+        position: absolute; inset: 0;
+        background-image:
+          linear-gradient(to right, rgba(46, 111, 239, 0.055) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(46, 111, 239, 0.055) 1px, transparent 1px);
+        background-size: 80px 80px;
+        background-position: -1px -1px;
+      }
+      .glow {
+        position: absolute; width: 720px; height: 720px; right: -180px; top: -300px;
+        background: radial-gradient(circle, rgba(57, 120, 246, 0.22) 0%, rgba(57, 120, 246, 0) 62%);
+      }
+      .glow-2 {
+        position: absolute; width: 560px; height: 560px; left: -260px; bottom: -320px;
+        background: radial-gradient(circle, rgba(143, 201, 255, 0.28) 0%, rgba(143, 201, 255, 0) 65%);
+      }
+
+      .left { position: absolute; left: 72px; top: 64px; width: 600px; }
+      .lockup { display: flex; align-items: center; gap: 12px; }
+      .lockup svg { display: block; }
+      .wordmark { font-size: 30px; font-weight: 800; letter-spacing: -0.04em; color: var(--ink); }
+      .repo {
+        margin-left: 6px; padding: 5px 11px; border-radius: 999px;
+        border: 1px solid rgba(11, 23, 51, 0.1); background: rgba(255, 255, 255, 0.65);
+        font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11.5px; color: var(--ink-2);
+      }
+
+      .eyebrow {
+        margin-top: 46px;
+        font-size: 12.5px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase;
+        color: var(--accent);
+      }
+      h1 {
+        margin-top: 14px;
+        font-size: 78px; line-height: 0.98; letter-spacing: -0.045em; font-weight: 800;
+      }
+      h1 .thin { color: var(--ink); }
+      .sub {
+        margin-top: 22px; max-width: 540px;
+        font-size: 24px; line-height: 1.42; font-weight: 500; color: var(--ink-2);
+      }
+      .sub b { color: var(--ink); font-weight: 700; }
+
+      .chips { margin-top: 30px; display: flex; gap: 8px; flex-wrap: wrap; }
+      .chip {
+        height: 31px; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px;
+        border-radius: 999px; background: #fff; border: 1px solid var(--line);
+        font-size: 12.5px; font-weight: 700; color: var(--ink-2);
+        box-shadow: 0 1px 0 rgba(11, 23, 51, 0.03);
+      }
+      .chip .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--accent); }
+
+      .url {
+        position: absolute; left: 72px; bottom: 56px;
+        display: flex; align-items: center; gap: 9px;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 13px; font-weight: 500; color: var(--muted);
+      }
+      .url .live { width: 7px; height: 7px; border-radius: 999px; background: var(--ok); box-shadow: 0 0 0 4px rgba(47, 163, 107, 0.14); }
+
+      .stage { position: absolute; inset: 0; }
+      .card {
+        position: absolute; background: var(--surface); border-radius: 22px;
+        border: 1px solid rgba(11, 23, 51, 0.07);
+        box-shadow: 0 30px 70px -30px rgba(11, 23, 51, 0.35), 0 8px 20px -12px rgba(11, 23, 51, 0.18);
+      }
+      .approval { left: 726px; top: 88px; width: 452px; padding: 22px 22px 20px; z-index: 3; }
+      .row { display: flex; align-items: center; justify-content: space-between; }
+      .label { font-size: 10px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); }
+      .when { font-size: 11px; font-weight: 600; color: var(--muted); }
+      .issue-title { margin-top: 12px; font-size: 19.5px; line-height: 1.32; font-weight: 800; letter-spacing: -0.015em; }
+      .issue-body { margin-top: 8px; font-size: 13px; line-height: 1.55; color: var(--muted); }
+      .meta { margin-top: 14px; display: flex; gap: 6px; }
+      .meta .chip { height: 26px; padding: 0 10px; font-size: 11px; }
+      .approve-row { margin-top: 16px; display: flex; gap: 8px; }
+      .btn {
+        height: 38px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+        font-size: 13px; font-weight: 800;
+      }
+      .btn-primary {
+        flex: 1; background: var(--accent); color: #fff;
+        box-shadow: 0 10px 22px -10px rgba(46, 111, 239, 0.9);
+      }
+      .btn-ghost { width: 74px; background: #fff; border: 1px solid var(--line); color: var(--ink-2); }
+      .btn-x { width: 38px; background: #fff; border: 1px solid var(--line); color: var(--ink-2); }
+      .approval-foot { margin-top: 12px; font-size: 11px; font-weight: 700; color: var(--accent); }
+
+      .run { left: 792px; top: 372px; width: 416px; padding: 18px 20px 16px; z-index: 4; }
+      .run-head { display: flex; align-items: center; gap: 8px; }
+      .status {
+        display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+        border-radius: 999px; background: #0b1733; color: #fff; font-size: 10px; font-weight: 800;
+        letter-spacing: 0.09em; text-transform: uppercase;
+      }
+      .pulse { width: 6px; height: 6px; border-radius: 999px; background: #6ee7a8; box-shadow: 0 0 0 3px rgba(110, 231, 168, 0.2); }
+      .run-title { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+      .steps { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+      .step { display: flex; align-items: flex-start; gap: 10px; }
+      .mark {
+        width: 20px; height: 20px; border-radius: 999px; flex: none;
+        display: flex; align-items: center; justify-content: center;
+        background: #e8f6ee; color: var(--ok); font-size: 10px; font-weight: 900;
+      }
+      .mark.active { background: var(--accent-soft); color: var(--accent); box-shadow: 0 0 0 4px rgba(46, 111, 239, 0.1); }
+      .step-body { min-width: 0; }
+      .step-title { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+      .step-title.active { color: var(--accent); }
+      .step-detail { font-size: 11px; color: var(--muted); margin-top: 1px; }
+      .bar { margin-top: 14px; height: 5px; border-radius: 999px; background: #eef2fa; overflow: hidden; }
+      .bar span { display: block; height: 100%; width: 68%; border-radius: 999px; background: linear-gradient(90deg, #3978f6, #8fc9ff); }
+
+      .verified {
+        position: absolute; left: 686px; top: 44px; z-index: 5;
+        display: flex; align-items: center; gap: 8px; padding: 9px 14px;
+        background: #0b1733; color: #fff; border-radius: 999px;
+        font-size: 11.5px; font-weight: 700;
+        box-shadow: 0 18px 34px -18px rgba(11, 23, 51, 0.7);
+      }
+      .verified .check { width: 16px; height: 16px; border-radius: 999px; background: rgba(110, 231, 168, 0.18); color: #6ee7a8; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <div class="glow-2"></div>
+    <div class="grid"></div>
+
+    <div class="left">
+      <div class="lockup">
+        <svg width="52" height="44" viewBox="0 0 48 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12.4 2.5H43.1C46.2 2.5 47.8 6.1 45.7 8.4L33.7 21.2C32.4 22.6 30.6 23.3 28.7 23.3H23.1C20.2 23.3 17.9 21 17.9 18.1V16.8H5.3C2.2 16.8.7 13.1 2.8 10.9L8.6 4.7C9.6 3.3 10.9 2.5 12.4 2.5Z" fill="#3978F6"/>
+          <path d="M11.1 22.1H32.1C35.1 22.1 36.7 25.8 34.5 28L25.7 37.1C24.8 38 23.5 38.5 22.2 38.5H4.8C1.8 38.5.2 34.9 2.3 32.6L8.1 25C8.9 23.3 9.9 22.1 11.1 22.1Z" fill="#8FC9FF"/>
+        </svg>
+        <span class="wordmark">ziki</span>
+        <span class="repo">ziki-for-humans</span>
+      </div>
+
+      <p class="eyebrow">Agent supervision console</p>
+      <h1>Ziki for<br /><span class="thin">humans</span></h1>
+      <p class="sub">
+        Brief an agent. Approve the plan.<br />
+        <b>Watch every step stream in.</b>
+      </p>
+
+      <div class="chips">
+        <span class="chip"><span class="dot"></span> Next.js 16</span>
+        <span class="chip">React 19</span>
+        <span class="chip">TypeScript</span>
+        <span class="chip">MIT</span>
+      </div>
+    </div>
+
+    <div class="url">
+      <span class="live"></span> ziki-for-humans.vercel.app
+    </div>
+
+    <div class="stage">
+      <div class="verified"><span class="check">✓</span> Human approved · merge gate held</div>
+
+      <div class="card approval">
+        <div class="row">
+          <span class="label">Plan approval</span>
+          <span class="when">3m ago</span>
+        </div>
+        <p class="issue-title">Triage #1387 — five H1 headings on the About page</p>
+        <p class="issue-body">
+          Read the issue and its thread, check near-duplicates across 1,380 issues, then confirm
+          the report with a triage note.
+        </p>
+        <div class="meta">
+          <span class="chip">4 min</span>
+          <span class="chip">low risk</span>
+          <span class="chip">writes</span>
+        </div>
+        <div class="approve-row">
+          <span class="btn btn-primary">✓ Approve</span>
+          <span class="btn btn-ghost">Edit</span>
+          <span class="btn btn-x">✕</span>
+        </div>
+        <p class="approval-foot">#1387 · read the thread ↗</p>
+      </div>
+
+      <div class="card run">
+        <div class="run-head">
+          <span class="status"><span class="pulse"></span> Running</span>
+          <span class="run-title">Ziki Reviewer</span>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <span class="mark">✓</span>
+            <div class="step-body">
+              <p class="step-title">Read #1387 and the full thread</p>
+              <p class="step-detail">2 comments · no linked pull request</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="mark">✓</span>
+            <div class="step-body">
+              <p class="step-title">Checked 1,380 issues for near-duplicates</p>
+              <p class="step-detail">2 near matches, both closed</p>
+            </div>
+          </div>
+          <div class="step">
+            <span class="mark active">›</span>
+            <div class="step-body">
+              <p class="step-title active">Posting a triage note</p>
+              <p class="step-detail">Reproduced · one file to change</p>
+            </div>
+          </div>
+        </div>
+        <div class="bar"><span></span></div>
+      </div>
+    </div>
+  </body>
+</html>
