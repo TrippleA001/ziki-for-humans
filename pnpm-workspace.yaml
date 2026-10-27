@@ -1,2 +1,6 @@
+# pnpm 12 reads allowBuilds; pnpm 9/10 (used by some CI and Vercel images) read
+# onlyBuiltDependencies. Declaring both keeps installs green across versions.
 allowBuilds:
   sharp: true
+onlyBuiltDependencies:
+  - sharp
