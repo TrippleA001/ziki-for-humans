@@ -8,6 +8,8 @@ action can be undone, and only a human merges.
 
 [![CI](https://github.com/TrippleA001/ziki-for-humans/actions/workflows/ci.yml/badge.svg)](https://github.com/TrippleA001/ziki-for-humans/actions/workflows/ci.yml)
 
+**Live demo → [ziki-for-humans.vercel.app](https://ziki-for-humans.vercel.app)**
+
 <img src="docs/screenshots/console.png" alt="The agent console: scope, run timeline, approvals and composer" width="1200" />
 
 ## Why this exists
@@ -137,6 +139,8 @@ pnpm start
 The whole simulation resets on reload — that is intentional for a demo.
 
 ## Deploy
+
+Hosted at **[ziki-for-humans.vercel.app](https://ziki-for-humans.vercel.app)**.
 
 The project has no environment variables. Import the repository and accept the detected settings:
 framework **Next.js**, build command `pnpm build`, output `.next`.
