@@ -114,7 +114,7 @@ docs/screenshots/    product screenshots used above
 
 ## Tech
 
-- **Next.js 15** App Router, **React 19**, **TypeScript**
+- **Next.js 16** App Router, **React 19.2**, **TypeScript**
 - **Tailwind CSS 3.4** with a token-based design system and a full dark theme
 - **lucide-react** icons; **Manrope** via Google Fonts with a system fallback
 - No state library, no UI kit, no runtime dependencies beyond React and icons
