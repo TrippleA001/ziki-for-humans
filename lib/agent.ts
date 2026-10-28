@@ -64,7 +64,7 @@ export function planFor(
     case "plan":
     default:
       return {
-        approach: `Investigate “${title}” and come back with a plan and an estimate. No comments, branches or pull requests until you approve it.`,
+        approach: `Investigate “${title}” and come back with a plan and an estimate. Read-only by design: no comments, branches or pull requests.`,
         steps: ["Read the issue", "Inspect the code", "Draft a plan"],
         etaMinutes: 3,
         risk: "low",
@@ -98,7 +98,7 @@ export function stepsFor(intent: "report" | "triage" | "fix" | "review" | "plan"
         detail: issue?.comments.length
           ? `${issue.comments.length} comments, 2 voters, no linked pull request.`
           : "No comments yet, 1 voter, no linked pull request.",
-        rationale: "Cheapest first step: understand the report before asking anyone for time.",
+        rationale: "Cheapest first step: understand the report before spending a token on a patch.",
         delayMs: 1000,
       }),
       ev(runId, 1, {
@@ -118,7 +118,7 @@ export function stepsFor(intent: "report" | "triage" | "fix" | "review" | "plan"
       ev(runId, 3, {
         kind: "claim",
         label: "Advanced the stage to Confirmed",
-        detail: "Two independent reviewers agree. Next gate: an owner has to authorize a fix.",
+        detail: "Two independent reviewers agree. Any agent on the team can now pick up the fix.",
         delayMs: 900,
       }),
     ];
@@ -162,8 +162,17 @@ export function stepsFor(intent: "report" | "triage" | "fix" | "review" | "plan"
       ev(runId, 5, {
         kind: "verdict",
         label: "Requested an independent verdict",
-        detail: "Two tester agents are assigned. You are only paged again at the merge gate.",
+        detail: "A tester agent that did not write this patch is assigned to prove it.",
         delayMs: 800,
+      }),
+      ev(runId, 6, {
+        kind: "claim",
+        label: `Ready to merge PR #${pr}`,
+        detail: `Closes #${id}. Checks green, one independent verdict recorded.`,
+        rationale:
+          "Merging is irreversible, so it is the one step I park instead of doing. Everything else already moved on.",
+        destructive: true,
+        delayMs: 900,
       }),
     ];
   }
@@ -190,6 +199,14 @@ export function stepsFor(intent: "report" | "triage" | "fix" | "review" | "plan"
         artifact: { label: `Verdict on #${id}`, href: `/issues/${id}` },
         undoable: true,
         delayMs: 900,
+      }),
+      ev(runId, 3, {
+        kind: "claim",
+        label: `Merge parked for release on PR #${pr}`,
+        detail: "The verdict is final. Landing it is the one irreversible step, so I parked it.",
+        rationale: "A verdict is reversible. A merge is not — that is the only difference I respect.",
+        destructive: true,
+        delayMs: 800,
       }),
     ];
   }
@@ -229,7 +246,7 @@ export function stepsFor(intent: "report" | "triage" | "fix" | "review" | "plan"
     ev(runId, 1, {
       kind: "patch",
       label: "Drafted an approach",
-      detail: "Two options, smallest first. Waiting for your decision before touching code.",
+      detail: "Two options, smallest first. This run is read-only — nothing is written.",
       delayMs: 1300,
     }),
   ];
@@ -242,6 +259,53 @@ export const INTENT_POINTS: Record<string, number> = {
   review: 60,
   plan: 0,
 };
+
+export interface Escalation {
+  severity: "scope" | "critical";
+  title: string;
+  body: string;
+  decision: string;
+  rationale: string;
+  options?: string[];
+}
+
+/**
+ * Escalations are the only thing that reaches a human: a scope change, or a
+ * surface that is too critical to change quietly. The agent still acted — this
+ * is the record of what it decided, not a request.
+ */
+export function escalationFor(
+  intent: "report" | "triage" | "fix" | "review" | "plan",
+  issue: Issue | undefined,
+): Escalation | undefined {
+  const id = issue?.id;
+
+  if (intent === "fix" && id) {
+    return {
+      severity: "scope",
+      title: `Scope change on #${id}`,
+      body: `The report names one page, but five pages render the same heading through one shared component. I patched the shared component and left the page-level markup alone.`,
+      decision: "Widened the change from one page to the shared component.",
+      rationale:
+        "Same diff size, but it fixes every occurrence. Patching five pages would have been five chances to drift.",
+      options: ["Keep the shared-component fix", "Revert and scope it to one page"],
+    };
+  }
+
+  if (intent === "review" && id) {
+    return {
+      severity: "critical",
+      title: `Critical surface on #${id}`,
+      body: `The diff touches how the session token is read before the popover mounts. I ran the suite, reproduced the focus trap and signed the verdict — flagging the surface because a merge here is not reversible.`,
+      decision: "Signed the verdict on a diff that touches session handling.",
+      rationale:
+        "The change is three lines and every check passes. A human should still know that this is the surface it landed on.",
+      options: ["Hold the verdict for a second pair of eyes", "Keep the signed verdict"],
+    };
+  }
+
+  return undefined;
+}
 
 export function reportBody(raw: string): string {
   return `${trimTitle(raw)}\n\nReported from the agent console. The agent will attach repro steps and expected/actual before filing.`;
