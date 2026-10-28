@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import type { Issue, Priority, Stage, IssueStatus, IssueType } from "@/lib/types";
 import { cn, hueFor } from "@/lib/utils";
-import { useZiki } from "@/lib/sim";
 
 export function Avatar({
   name,
@@ -125,39 +124,5 @@ export function IssueRow({
         <StageChip value={issue.stage} />
       </div>
     </Link>
-  );
-}
-
-export function ToastHost() {
-  const { state, dismissToast } = useZiki();
-  const toast = state.toast;
-  if (!toast) return null;
-  return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
-      <div
-        role="status"
-        className="pop-in pointer-events-auto flex w-full max-w-[440px] items-start gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3.5 shadow-[var(--shadow-pop)]"
-      >
-        <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[rgb(var(--ok-bg))] text-[rgb(var(--ok-fg))]">
-          <Check size={14} strokeWidth={2.6} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-bold t-text">{toast.title}</p>
-          {toast.detail ? <p className="mt-0.5 text-[12px] t-muted">{toast.detail}</p> : null}
-          {toast.actionHref ? (
-            <Link
-              href={toast.actionHref}
-              onClick={dismissToast}
-              className="mt-2 inline-flex items-center gap-1 text-[12px] font-bold t-accent"
-            >
-              {toast.actionLabel ?? "Open"} <ArrowRight size={12} />
-            </Link>
-          ) : null}
-        </div>
-        <button onClick={dismissToast} className="icon-btn h-7 w-7" aria-label="Dismiss">
-          <X size={13} />
-        </button>
-      </div>
-    </div>
   );
 }

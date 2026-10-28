@@ -63,7 +63,8 @@ export function TopBar() {
     }
   }
 
-  const queue = state.approvals.length;
+  const queue = state.reviews.filter((review) => !review.resolvedAt).length;
+  const running = state.runs.filter((run) => run.status === "running").length;
 
   return (
     <header className="sticky top-0 z-40 border-b border-[rgb(var(--border))] bg-[rgb(var(--surface))]/95 backdrop-blur">
@@ -185,7 +186,7 @@ export function TopBar() {
             <span className="text-[11px] font-semibold t-muted">pts</span>
           </Link>
 
-          <Link href="/inbox" className="relative icon-btn" aria-label={`Inbox, ${queue} waiting`}>
+          <Link href="/inbox" className="relative icon-btn" aria-label={`Inbox, ${queue} open escalations`}>
             <Bell size={17} />
             {queue > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[rgb(var(--bad-fg))] px-1 text-[10px] font-bold text-white">
@@ -292,12 +293,17 @@ export function TopBar() {
 
           <div className="ml-auto flex items-center gap-2 pl-3">
             <span className="hidden items-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-2.5 py-1 text-[11px] font-bold t-2 md:inline-flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--accent))]" />
-              {state.autonomy === "ask"
-                ? "Approves every write"
-                : state.autonomy === "writes"
-                  ? "Approves writes only"
-                  : "Autonomous"}
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  running ? "bg-[rgb(var(--ok-fg))]" : "bg-[rgb(var(--border))]",
+                )}
+              />
+              {running === 0
+                ? "Agents idle"
+                : running === 1
+                  ? "1 run in progress"
+                  : `${running} runs in progress`}
             </span>
             <button onClick={toggleTheme} className="icon-btn h-8 w-8" aria-label="Toggle theme">
               {theme === "dark" ? <Moon size={15} /> : <Sun size={15} />}

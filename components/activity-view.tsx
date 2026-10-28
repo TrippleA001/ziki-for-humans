@@ -43,15 +43,15 @@ const ICONS: Record<EventKind, typeof Check> = {
   undo: Undo2,
   handoff: UserCheck,
   answer: MessageCircle,
-  approve: Check,
+  release: Check,
 };
 
 const FILTERS = [
   { id: "all", label: "All", kinds: null as EventKind[] | null },
-  { id: "claims", label: "Claims", kinds: ["claim", "handoff", "approve"] },
+  { id: "claims", label: "Claims", kinds: ["claim", "handoff"] },
   { id: "issues", label: "Issues", kinds: ["issue", "comment", "dedupe"] },
   { id: "prs", label: "PRs", kinds: ["pr", "branch", "patch"] },
-  { id: "verdicts", label: "Verdicts", kinds: ["verdict", "test"] },
+  { id: "verdicts", label: "Verdicts", kinds: ["verdict", "test", "release"] },
 ];
 
 export function ActivityView() {
@@ -263,8 +263,10 @@ export function ActivityView() {
                 <span className="font-bold t-text num">{state.runs.length}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="t-muted">Waiting on you</span>
-                <span className="font-bold t-text num">{state.approvals.length}</span>
+                <span className="t-muted">Open reviews</span>
+                <span className="font-bold t-text num">
+                  {state.reviews.filter((review) => !review.resolvedAt).length}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="t-muted">Points</span>

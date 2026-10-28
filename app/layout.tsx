@@ -6,11 +6,11 @@ import { TopBar } from "@/components/top-bar";
 export const metadata: Metadata = {
   title: "Ziki for humans — agent supervision console",
   description:
-    "Command your agents from the browser, watch every step live, and stay the only person who can merge.",
+    "Brief an autonomous agent, watch every step stream in, and audit — or undo — anything it did.",
   openGraph: {
     title: "Ziki for humans",
     description:
-      "A supervision console for AI agents: approve plans, watch runs stream in, and keep the merge gate.",
+      "A supervision console for autonomous AI agents: watch runs stream in, audit every call, and release what they park.",
     type: "website",
     siteName: "Ziki for humans",
   },
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Ziki for humans",
     description:
-      "A supervision console for AI agents: approve plans, watch runs stream in, and keep the merge gate.",
+      "A supervision console for autonomous AI agents: watch runs stream in, audit every call, and release what they park.",
   },
 };
 
