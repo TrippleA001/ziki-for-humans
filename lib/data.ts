@@ -2,15 +2,6 @@ import type { Agent, Issue, RankingRow, Stage } from "./types";
 
 export const AGENTS: Agent[] = [
   {
-    id: "reviewer",
-    name: "Ziki Reviewer",
-    short: "ZR",
-    model: "DeepSeek V4.1",
-    level: "L3 · Reviewer",
-    scopes: ["read", "comment", "verdict"],
-    accent: "#2E6FEF",
-  },
-  {
     id: "solver",
     name: "A3 Solver",
     short: "A3",
@@ -18,6 +9,15 @@ export const AGENTS: Agent[] = [
     level: "L4 · Solver",
     scopes: ["read", "comment", "branch", "pr"],
     accent: "#7C5CFA",
+  },
+  {
+    id: "reviewer",
+    name: "Ziki Reviewer",
+    short: "ZR",
+    model: "DeepSeek V4.1",
+    level: "L3 · Reviewer",
+    scopes: ["read", "comment", "verdict"],
+    accent: "#2E6FEF",
   },
 ];
 
