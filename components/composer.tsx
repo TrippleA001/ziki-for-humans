@@ -7,7 +7,6 @@ import {
   FilePlus2,
   GitPullRequest,
   Hand,
-  HelpCircle,
   ListChecks,
   ScanSearch,
   ShieldCheck,
@@ -24,7 +23,6 @@ const COMMANDS = [
   { cmd: "/plan", icon: ListChecks, hint: "Investigate and return a plan — write nothing" },
   { cmd: "/stop", icon: Square, hint: "Stop the active run where it stands" },
   { cmd: "/handoff", icon: Hand, hint: "Take the claim yourself" },
-  { cmd: "/why", icon: HelpCircle, hint: "Explain the last step from the trace" },
 ];
 
 export function Composer({
@@ -38,7 +36,7 @@ export function Composer({
   onSent?: () => void;
   compact?: boolean;
 }) {
-  const { state, sendCommand, agent } = useZiki();
+  const { sendMessage, agent } = useZiki();
   const [value, setValue] = useState(initial ?? "");
   const [open, setOpen] = useState(false);
   const [cursor, setCursor] = useState(0);
@@ -60,7 +58,7 @@ export function Composer({
   function submit() {
     const text = value.trim();
     if (!text) return;
-    sendCommand(text, contextIssueId);
+    sendMessage(text, contextIssueId);
     setValue("");
     setOpen(false);
     onSent?.();
@@ -81,12 +79,12 @@ export function Composer({
           <span className="chip">no issue context</span>
         )}
         <span className="text-[11px] t-muted">
-          {agent.name} · acting for AbdulSamad
+          Chat with {agent.name} · acting for AbdulSamad
         </span>
         <span className="ml-auto hidden items-center gap-1 text-[10.5px] t-muted sm:flex">
-          <span className="kbd">⌘</span>
-          <span className="kbd">↵</span>
-          to dispatch
+          <span className="kbd">↵</span> to send
+          <span className="kbd ml-1.5">⇧</span>
+          <span className="kbd">↵</span> newline
         </span>
       </div>
 
@@ -153,15 +151,20 @@ export function Composer({
             if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
               e.preventDefault();
               submit();
+              return;
+            }
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
             }
           }}
           placeholder={
             contextIssueId
-              ? `Tell ${agent.name} what to do with #${contextIssueId} — or type / for commands`
-              : `Tell ${agent.name} what to do — try “fix #1384” or type / for commands`
+              ? `Message ${agent.name} about #${contextIssueId} — or type / for commands`
+              : `Message ${agent.name} — ask for a triage, a fix, or what it is doing`
           }
           className="textarea pr-3"
-          aria-label="Command your agent"
+          aria-label="Message your agent"
         />
 
         <div className="mt-2 flex items-center gap-2">
@@ -185,18 +188,14 @@ export function Composer({
           </div>
           <div className="ml-auto flex items-center gap-2">
             <span className="hidden text-[10.5px] t-muted md:inline">
-              {state.autonomy === "ask"
-                ? "Every write needs your approval"
-                : state.autonomy === "writes"
-                  ? "Reads run free · writes need approval"
-                  : "Runs without asking — undo stays available"}
+              It answers here and starts on its own
             </span>
             <button
               onClick={submit}
               disabled={!value.trim()}
               className="btn btn-primary btn-sm"
             >
-              <ArrowUp size={13} strokeWidth={2.6} /> Dispatch
+              <ArrowUp size={13} strokeWidth={2.6} /> Send
               <CornerDownLeft size={12} className="opacity-70" />
             </button>
           </div>

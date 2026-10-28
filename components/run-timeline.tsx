@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { EventKind, Run, RunEvent } from "@/lib/types";
 import { cn, clockTime } from "@/lib/utils";
+import { useMounted } from "@/lib/use-now";
 import { useZiki } from "@/lib/sim";
 
 const ICONS: Record<EventKind, typeof Check> = {
@@ -39,7 +40,7 @@ const ICONS: Record<EventKind, typeof Check> = {
   undo: Undo2,
   handoff: UserCheck,
   answer: MessageCircle,
-  approve: Check,
+  release: Check,
 };
 
 export function TimelineEvent({
@@ -52,6 +53,7 @@ export function TimelineEvent({
   onUndo?: () => void;
 }) {
   const Icon = ICONS[event.kind] ?? Check;
+  const mounted = useMounted();
   return (
     <div className="fade-in relative flex gap-3">
       <div className="flex flex-col items-center">
@@ -80,7 +82,7 @@ export function TimelineEvent({
             {event.label}
           </p>
           <span className="ml-auto shrink-0 pt-0.5 text-[10.5px] t-muted num">
-            {event.at ? clockTime(event.at) : ""}
+            {event.at && mounted ? clockTime(event.at) : ""}
           </span>
         </div>
         {event.detail ? (
@@ -91,6 +93,20 @@ export function TimelineEvent({
             <span className="font-extrabold t-accent">Why · </span>
             {event.rationale}
           </p>
+        ) : null}
+        {event.held || event.released ? (
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {event.held ? (
+              <>
+                <span className="chip chip-warn">parked · not applied</span>
+                <Link href="/inbox" className="text-[11px] font-bold t-accent">
+                  Release it in the queue ↗
+                </Link>
+              </>
+            ) : (
+              <span className="chip chip-ok">released by you</span>
+            )}
+          </div>
         ) : null}
         {event.artifact || (event.undoable && !event.undone) || event.undone ? (
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
