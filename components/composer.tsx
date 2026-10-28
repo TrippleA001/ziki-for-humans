@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
-  CornerDownLeft,
   FilePlus2,
   GitPullRequest,
   Hand,
@@ -29,12 +28,10 @@ export function Composer({
   contextIssueId,
   initial,
   onSent,
-  compact,
 }: {
   contextIssueId?: number;
   initial?: string;
   onSent?: () => void;
-  compact?: boolean;
 }) {
   const { sendMessage, agent } = useZiki();
   const [value, setValue] = useState(initial ?? "");
@@ -55,12 +52,21 @@ export function Composer({
     ? COMMANDS.filter((c) => c.cmd.slice(1).startsWith(query))
     : [];
 
+  function grow(node: HTMLTextAreaElement) {
+    node.style.height = "auto";
+    node.style.height = `${Math.min(node.scrollHeight, 120)}px`;
+  }
+
   function submit() {
     const text = value.trim();
     if (!text) return;
     sendMessage(text, contextIssueId);
     setValue("");
     setOpen(false);
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+      inputRef.current.focus();
+    }
     onSent?.();
   }
 
@@ -71,60 +77,45 @@ export function Composer({
   }
 
   return (
-    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-3 shadow-[var(--shadow)]">
-      <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
-        {contextIssueId ? (
-          <span className="chip chip-accent">#{contextIssueId}</span>
-        ) : (
-          <span className="chip">no issue context</span>
-        )}
-        <span className="text-[11px] t-muted">
-          Chat with {agent.name} · acting for AbdulSamad
-        </span>
-        <span className="ml-auto hidden items-center gap-1 text-[10.5px] t-muted sm:flex">
-          <span className="kbd">↵</span> to send
-          <span className="kbd ml-1.5">⇧</span>
-          <span className="kbd">↵</span> newline
-        </span>
-      </div>
+    <div className="relative">
+      {open && filtered.length > 0 ? (
+        <div className="pop-in absolute bottom-full left-0 z-30 mb-2 w-full overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-1.5 shadow-[var(--shadow-pop)]">
+          <p className="px-2 pb-1 pt-1 label-muted">Commands</p>
+          {filtered.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.cmd}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => applyCommand(item.cmd)}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors",
+                  index === cursor ? "bg-[rgb(var(--tint))]" : "hover:bg-[rgb(var(--chip))]",
+                )}
+              >
+                <Icon size={14} className="t-accent" />
+                <span className="w-[74px] shrink-0 font-mono text-[12px] font-bold t-text">
+                  {item.cmd}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[11.5px] t-muted">
+                  {item.hint}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
-      <div className="relative">
-        {open && filtered.length > 0 ? (
-          <div className="pop-in absolute bottom-full left-0 z-30 mb-2 w-full overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-1.5 shadow-[var(--shadow-pop)]">
-            <p className="px-2 pb-1 pt-1 label-muted">Commands</p>
-            {filtered.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.cmd}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => applyCommand(item.cmd)}
-                  className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors",
-                    index === cursor ? "bg-[rgb(var(--tint))]" : "hover:bg-[rgb(var(--chip))]",
-                  )}
-                >
-                  <Icon size={14} className="t-accent" />
-                  <span className="w-[74px] shrink-0 font-mono text-[12px] font-bold t-text">
-                    {item.cmd}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-[11.5px] t-muted">
-                    {item.hint}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-
+      <div className="flex items-end gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-3 py-2 transition-colors focus-within:border-[rgb(var(--accent))]/50">
         <textarea
           ref={inputRef}
-          rows={compact ? 2 : 3}
+          rows={1}
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
             setOpen(e.target.value.startsWith("/") && !e.target.value.includes(" "));
             setCursor(0);
+            grow(e.target);
           }}
           onKeyDown={(e) => {
             if (open && filtered.length > 0) {
@@ -148,11 +139,6 @@ export function Composer({
                 return;
               }
             }
-            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-              e.preventDefault();
-              submit();
-              return;
-            }
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               submit();
@@ -160,46 +146,21 @@ export function Composer({
           }}
           placeholder={
             contextIssueId
-              ? `Message ${agent.name} about #${contextIssueId} — or type / for commands`
-              : `Message ${agent.name} — ask for a triage, a fix, or what it is doing`
+              ? `Message ${agent.name} about #${contextIssueId}…`
+              : `Message ${agent.name}…`
           }
-          className="textarea pr-3"
           aria-label="Message your agent"
+          className="max-h-[120px] min-h-[24px] flex-1 resize-none bg-transparent text-[12.5px] leading-6 outline-none placeholder:t-muted"
         />
-
-        <div className="mt-2 flex items-center gap-2">
-          <div className="hidden flex-wrap items-center gap-1.5 sm:flex">
-            {[
-              { label: "/triage #1387", cmd: "/triage #1387" },
-              { label: "/fix #1384", cmd: "/fix #1384" },
-              { label: "/review #1355", cmd: "/review #1355" },
-            ].map((item) => (
-              <button
-                key={item.cmd}
-                onClick={() => {
-                  setValue(item.cmd);
-                  inputRef.current?.focus();
-                }}
-                className="rounded-full border border-[rgb(var(--border))] px-2.5 py-1 font-mono text-[10.5px] font-semibold t-2 transition-colors hover:border-[rgb(var(--accent))]/50 hover:bg-[rgb(var(--tint))]"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="hidden text-[10.5px] t-muted md:inline">
-              It answers here and starts on its own
-            </span>
-            <button
-              onClick={submit}
-              disabled={!value.trim()}
-              className="btn btn-primary btn-sm"
-            >
-              <ArrowUp size={13} strokeWidth={2.6} /> Send
-              <CornerDownLeft size={12} className="opacity-70" />
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={submit}
+          disabled={!value.trim()}
+          title="Send"
+          aria-label="Send message"
+          className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[rgb(var(--accent))] text-white transition-opacity hover:opacity-90 disabled:opacity-30"
+        >
+          <ArrowUp size={14} strokeWidth={2.8} />
+        </button>
       </div>
     </div>
   );
