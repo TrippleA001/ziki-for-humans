@@ -88,8 +88,8 @@ activity feed, and the issue's stage panel shows exactly who did each one.
 
 ## Try the demo
 
-1. Open `/console` — the conversation with **Ziki Reviewer** is already open, and its run on
-   **#1387** is streaming in the rail beside it. Reply in the chat and it answers.
+1. Open `/console` — the chat with **A3 Solver** starts empty, and its run on **#1387** is already
+   streaming in the rail beside it. Send a brief and it answers.
 2. Send `/fix #1384`. It posts a plan, branches, patches and opens a PR without asking twice.
 3. Watch the scope change reach `/inbox` while the run keeps going.
 4. Open `/issues/1355` and click **Merged** to see the parked step, then **Release** it — the
