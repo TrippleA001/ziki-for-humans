@@ -50,7 +50,7 @@ export function IssuesView() {
   }, [state.issues, status, platform, query, sort]);
 
   const activeRun = state.runs.find((r) => r.status === "running");
-  const openOffers = state.approvals.filter((a) => a.kind === "plan").length;
+  const escalations = state.reviews.filter((review) => !review.resolvedAt).length;
 
   return (
     <div>
@@ -70,19 +70,20 @@ export function IssuesView() {
         </Link>
       </div>
 
-      {openOffers > 0 ? (
+      {escalations > 0 ? (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-[rgb(var(--accent))]/25 bg-[rgb(var(--accent-soft))] px-4 py-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgb(var(--accent))] text-white">
             <ArrowRight size={14} />
           </span>
           <p className="text-[12.5px] font-bold text-[rgb(var(--accent-text))]">
-            {openOffers} agent {openOffers === 1 ? "plan is" : "plans are"} waiting on you
+            {escalations} {escalations === 1 ? "escalation is" : "escalations are"} waiting
           </p>
           <p className="hidden text-[11.5px] text-[rgb(var(--accent-text))]/80 sm:block">
-            Approving starts the run and claims the work.
+            Scope changes, critical surfaces and parked merges. Everything else the agents
+            handled themselves.
           </p>
           <Link href="/inbox" className="btn btn-primary btn-sm ml-auto">
-            Decide in the inbox
+            Open the inbox
           </Link>
         </div>
       ) : null}

@@ -4,100 +4,132 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  CornerDownLeft,
-  Inbox,
+  CheckCheck,
   Keyboard,
-  Lightbulb,
   RefreshCcw,
   ShieldCheck,
-  Sparkles,
+  TriangleAlert,
 } from "lucide-react";
-import { IDEAS } from "@/lib/data";
 import { useZiki } from "@/lib/sim";
+import type { Review } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { ApprovalCard, EmptyQueue } from "./approvals";
-import { StageChip, TypeChip } from "./ui";
+import { EmptyQueue, ReviewCard } from "./review-queue";
 
 const TABS = [
-  { id: "input", label: "Need your input" },
-  { id: "design", label: "Design feedback" },
-  { id: "ideas", label: "New ideas" },
+  { id: "open", label: "Open" },
+  { id: "resolved", label: "Resolved" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["id"];
 
 export function InboxView() {
-  const { state, approve, decline, reset } = useZiki();
-  const [tab, setTab] = useState<Tab>("input");
-  const [selected, setSelected] = useState(0);
+  const {
+    state,
+    releaseHold,
+    discardHold,
+    acknowledge,
+    overrideCall,
+    clearReviews,
+    reset,
+  } = useZiki();
+  const [tab, setTab] = useState<Tab>("open");
+  const [selectedId, setSelectedId] = useState<string | undefined>();
   const [help, setHelp] = useState(false);
 
-  const escalations = state.approvals.filter((a) => a.kind === "escalation");
-  const plans = state.approvals.filter((a) => a.kind === "plan");
-  const list = tab === "design" ? escalations : state.approvals;
-  const current = list[selected];
+  const open = state.reviews.filter((review) => !review.resolvedAt);
+  const resolved = state.reviews.filter((review) => review.resolvedAt);
+  const list: Review[] = tab === "resolved" ? resolved : open;
 
   useEffect(() => {
-    setSelected(0);
-  }, [tab, state.approvals.length]);
+    setSelectedId(undefined);
+  }, [tab]);
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const target = e.target as HTMLElement | null;
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
       if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-      if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
-        e.preventDefault();
-        setHelp((v) => !v);
+
+      if (event.key === "?" || (event.key === "/" && event.shiftKey)) {
+        event.preventDefault();
+        setHelp((value) => !value);
         return;
       }
-      if (help && e.key === "Escape") {
+      if (event.key === "Escape") {
         setHelp(false);
         return;
       }
-      if (tab === "ideas" || list.length === 0) return;
 
-      if (e.key.toLowerCase() === "j") {
-        e.preventDefault();
-        setSelected((s) => Math.min(s + 1, list.length - 1));
+      const index = list.findIndex((review) => review.id === selectedId);
+
+      if (event.key.toLowerCase() === "j") {
+        event.preventDefault();
+        setSelectedId(list[Math.min(index + 1, list.length - 1)]?.id);
+        return;
       }
-      if (e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setSelected((s) => Math.max(s - 1, 0));
+      if (event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setSelectedId(list[Math.max(index - 1, 0)]?.id);
+        return;
       }
-      const active = list[selected];
-      if (!active) return;
-      if (e.key.toLowerCase() === "a") {
-        e.preventDefault();
-        if (active.kind === "plan") approve(active.id);
+
+      const active = list.find((review) => review.id === selectedId);
+      if (!active || active.resolvedAt) return;
+
+      if (event.key.toLowerCase() === "r" && active.kind === "hold") {
+        event.preventDefault();
+        releaseHold(active.id);
       }
-      if (e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        decline(active.id);
+      if (event.key.toLowerCase() === "d" && active.kind === "hold") {
+        event.preventDefault();
+        discardHold(active.id);
+      }
+      if (event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        acknowledge(active.id);
+      }
+      if (
+        event.key.toLowerCase() === "o" &&
+        active.kind === "escalation" &&
+        active.options?.length
+      ) {
+        event.preventDefault();
+        overrideCall(active.id, active.options[0]);
       }
     }
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [approve, decline, help, list, selected, tab]);
+  }, [acknowledge, discardHold, list, overrideCall, releaseHold, selectedId]);
 
   const stats = useMemo(
     () => [
-      { label: "Waiting", value: state.approvals.length },
-      { label: "Plans", value: plans.length },
-      { label: "Questions", value: escalations.length },
+      {
+        label: "Destructive",
+        value: open.filter((review) => review.kind === "hold").length,
+      },
+      {
+        label: "Scope",
+        value: open.filter((review) => review.severity === "scope").length,
+      },
+      {
+        label: "Critical",
+        value: open.filter((review) => review.severity === "critical").length,
+      },
     ],
-    [state.approvals.length, plans.length, escalations.length],
+    [open],
   );
 
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="label">Human gate</p>
+          <p className="label">Escalations</p>
           <h1 className="mt-1 text-[27px] font-extrabold leading-tight tracking-[-0.025em] t-text">
             Inbox
           </h1>
-          <p className="mt-1 text-[13px] t-muted">
-            Everything your agents need a person to decide. Nothing moves without you.
+          <p className="mt-1 max-w-[620px] text-[13px] t-muted">
+            Only what a human must know: a change of scope, a critical surface, or a
+            destructive step the agent parked. Everything else the agents handle on their own.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -110,17 +142,12 @@ export function InboxView() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_316px]">
         <div>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="seg">
               {TABS.map((item) => {
-                const count =
-                  item.id === "input"
-                    ? state.approvals.length
-                    : item.id === "design"
-                      ? escalations.length
-                      : IDEAS.length;
+                const count = item.id === "open" ? open.length : resolved.length;
                 return (
                   <button
                     key={item.id}
@@ -133,73 +160,63 @@ export function InboxView() {
                 );
               })}
             </div>
+            {tab === "open" && open.length > 0 ? (
+              <button
+                onClick={clearReviews}
+                className="btn btn-ghost btn-sm hidden gap-1.5 sm:inline-flex"
+              >
+                <CheckCheck size={12} /> Mark all read
+              </button>
+            ) : null}
             <span className="ml-auto hidden items-center gap-1.5 text-[10.5px] t-muted sm:flex">
               <span className="kbd">J</span>
               <span className="kbd">K</span> move
-              <span className="kbd ml-1.5">A</span> approve
-              <span className="kbd">D</span> decline
+              <span className="kbd ml-1.5">R</span> release
+              <span className="kbd">D</span> discard
+              <span className="kbd ml-1.5">A</span> read
+              <span className="kbd ml-1.5">?</span> help
             </span>
           </div>
 
-          {tab === "ideas" ? (
-            <div className="card divide-y divide-[rgb(var(--divider))] overflow-hidden">
-              {IDEAS.map((idea) => (
-                <Link
-                  key={idea.id}
-                  href={`/issues/${idea.id}`}
-                  className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-[rgb(var(--rowsel))]"
-                >
-                  <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[rgb(var(--warn-bg))] text-[rgb(var(--warn-fg))]">
-                    <Lightbulb size={14} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-bold t-text">{idea.title}</p>
-                    <p className="mt-0.5 text-[11.5px] t-muted">
-                      #{idea.id} · {idea.reporter} · {idea.reported}
-                    </p>
-                  </div>
-                  <div className="flex flex-none items-center gap-1.5">
-                    <TypeChip value={idea.type} />
-                    <StageChip value={idea.stage} />
-                  </div>
-                </Link>
-              ))}
-              <div className="flex items-center gap-2 bg-[rgb(var(--surface-2))] px-4 py-3 text-[11.5px] t-muted">
-                <Sparkles size={13} className="t-accent" />
-                Ideas are where agents are allowed to disagree with the roadmap — you decide
-                whether they become work.
-              </div>
-            </div>
-          ) : list.length === 0 ? (
-            <div className="card p-5">
-              <EmptyQueue />
-              <div className="mt-4 flex justify-center">
-                <button onClick={reset} className="btn btn-ghost btn-sm gap-1.5">
-                  <RefreshCcw size={12} /> Restore the demo queue
-                </button>
-              </div>
+          {list.length === 0 ? (
+            <div className="card p-4">
+              {tab === "open" ? (
+                <EmptyQueue />
+              ) : (
+                <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+                  <p className="text-[12.5px] font-bold t-text">Nothing resolved yet</p>
+                  <p className="mt-0.5 max-w-[300px] text-[11px] t-muted">
+                    Releases, discards, overrides and acknowledgements land here as a record
+                    of what you decided.
+                  </p>
+                </div>
+              )}
+              {tab === "open" ? (
+                <div className="mt-4 flex justify-center">
+                  <button onClick={reset} className="btn btn-ghost btn-sm gap-1.5">
+                    <RefreshCcw size={12} /> Restore the demo queue
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="space-y-3">
-              {list.map((approval, index) => (
-                <div key={approval.id} className="flex gap-2">
+              {list.map((review) => (
+                <div key={review.id} className="flex gap-2">
                   <div
                     className={cn(
                       "mt-1 w-1 shrink-0 rounded-full",
-                      index === selected ? "bg-[rgb(var(--accent))]" : "bg-transparent",
+                      review.id === selectedId ? "bg-[rgb(var(--accent))]" : "bg-transparent",
                     )}
                   />
                   <div className="min-w-0 flex-1">
-                    <ApprovalCard
-                      approval={approval}
+                    <ReviewCard
+                      review={review}
                       variant="inbox"
-                      selected={index === selected}
-                      onSelect={() => setSelected(index)}
+                      selected={review.id === selectedId}
+                      onSelect={() => setSelectedId(review.id)}
                     />
                   </div>
-                  <span className="mt-3 hidden w-5 text-right text-[10px] t-muted sm:block num">
-                    {index + 1}
-                  </span>
                 </div>
               ))}
             </div>
@@ -207,9 +224,10 @@ export function InboxView() {
 
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-4 py-3 text-[11.5px] t-muted">
             <ShieldCheck size={14} className="t-accent" />
-            <span className="font-semibold t-2">Your decision is the only way forward.</span>
+            <span className="font-semibold t-2">Nothing here is a gate.</span>
             <span className="hidden sm:inline">
-              Approving starts the run and records the authorization in the audit trail.
+              Agents keep working while you read. Releasing a hold applies the parked step;
+              discarding drops it and keeps the branch open.
             </span>
             <Link href="/activity" className="ml-auto font-bold t-accent">
               See the audit trail →
@@ -219,12 +237,12 @@ export function InboxView() {
 
         <aside className="flex flex-col gap-4">
           <section className="card p-4">
-            <p className="label">Queue</p>
+            <p className="label">Open escalations</p>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-xl bg-[rgb(var(--surface-2))] px-2.5 py-2 text-center"
+                  className="rounded-xl bg-[rgb(var(--surface-2))] px-2 py-2 text-center"
                 >
                   <p className="text-[19px] font-extrabold leading-none t-text num">
                     {stat.value}
@@ -236,60 +254,63 @@ export function InboxView() {
               ))}
             </div>
             <div className="my-3 divider" />
-            <div className="space-y-2 text-[11.5px] t-muted">
+            <div className="space-y-2 text-[11.5px]">
               <div className="flex items-center justify-between">
-                <span>Median decision</span>
-                <span className="font-bold t-2">38s</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Auto-approved this week</span>
-                <span className="font-bold t-2">11</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Expired offers</span>
+                <span className="t-muted">Waiting on a human</span>
                 <span className="font-bold t-2">0</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="t-muted">Runs in progress</span>
+                <span className="font-bold t-2 num">
+                  {state.runs.filter((run) => run.status === "running").length}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="t-muted">Decisions you made</span>
+                <span className="font-bold t-2 num">{resolved.length}</span>
               </div>
             </div>
           </section>
 
           <section className="card p-4">
-            <p className="label">How it works</p>
-            <ol className="mt-2 space-y-2.5">
+            <p className="label">What lands here</p>
+            <ul className="mt-2 space-y-2.5">
               {[
-                "An agent finds work and writes a plan — approach, estimate, risk, files.",
-                "You approve, edit or decline. Nothing is written before you decide.",
-                "The run streams in the console. Every action is attributable and undoable.",
-                "Independent agents prove the fix; you get the merge gate, not the busywork.",
-              ].map((line, index) => (
+                "A destructive step — a merge — parked instead of applied.",
+                "A scope change: the agent widened the work and says why.",
+                "A critical surface: the change touched something you should know about.",
+              ].map((line) => (
                 <li key={line} className="flex gap-2.5">
-                  <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[rgb(var(--accent-soft))] text-[10px] font-extrabold t-accent">
-                    {index + 1}
-                  </span>
+                  <TriangleAlert size={13} className="mt-0.5 flex-none t-muted" />
                   <span className="text-[11.5px] leading-relaxed t-2">{line}</span>
                 </li>
               ))}
-            </ol>
+            </ul>
+            <p className="mt-2.5 text-[10.5px] leading-relaxed t-muted">
+              Reported, triaged, fixed, tested, reviewed — none of that reaches you. It stays
+              in the activity feed.
+            </p>
           </section>
 
           <section className="rounded-2xl bg-[rgb(var(--navy))] p-4 text-white">
             <div className="flex items-center gap-2">
-              <Inbox size={14} className="text-white/70" />
+              <ShieldCheck size={14} className="text-white/60" />
               <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/60">
-                Inbox zero
+                Exceptions only
               </p>
             </div>
             <p className="mt-2 text-[13px] font-bold leading-snug">
-              An empty queue is the goal, not a failure.
+              Agents own the work. You own the exceptions.
             </p>
             <p className="mt-1 text-[11.5px] leading-relaxed text-white/60">
-              Your agents can confirm, comment and open PRs inside their permissions. You only
-              appear where judgment is required.
+              Close this page and the agents keep shipping. The only thing that waits is a
+              merge you have not released yet.
             </p>
             <Link
               href="/console"
               className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-[11.5px] font-bold text-[#0B1733]"
             >
-              Brief an agent <CornerDownLeft size={12} />
+              Brief an agent <ArrowRight size={12} />
             </Link>
           </section>
         </aside>
@@ -302,15 +323,17 @@ export function InboxView() {
         >
           <div
             className="pop-in w-full max-w-[420px] rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-5 shadow-[var(--shadow-pop)]"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <p className="label">Keyboard</p>
-            <h2 className="mt-1 text-[17px] font-extrabold t-text">Decide without the mouse</h2>
+            <h2 className="mt-1 text-[17px] font-extrabold t-text">Clear the inbox without the mouse</h2>
             <div className="mt-3 space-y-2">
               {[
-                ["J / K", "Move down / up the queue"],
-                ["A", "Approve the selected plan"],
-                ["D", "Decline the selected item"],
+                ["J / K", "Move down / up the list"],
+                ["R", "Release a parked step"],
+                ["D", "Discard a parked step"],
+                ["A", "Acknowledge an escalation"],
+                ["O", "Take the agent's alternative"],
                 ["?", "Toggle this panel"],
                 ["Esc", "Close"],
               ].map(([key, action]) => (
