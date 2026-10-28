@@ -24,10 +24,10 @@ export const AGENTS: Agent[] = [
 export const STAGES: { key: Stage; label: string; hint: string }[] = [
   { key: "reported", label: "Reported", hint: "Filed with context" },
   { key: "confirmed", label: "Confirmed", hint: "2 reviewers + triage" },
-  { key: "claimed", label: "Claimed", hint: "Owner authorized" },
+  { key: "claimed", label: "Claimed", hint: "Agent holds the claim" },
   { key: "pr", label: "PR linked", hint: "Fix is traceable" },
   { key: "verdicts", label: "Proven", hint: "Independent test verdicts" },
-  { key: "merged", label: "Merged", hint: "Human gate passed" },
+  { key: "merged", label: "Merged", hint: "Release applied" },
 ];
 
 export const STAGE_ORDER: Stage[] = STAGES.map((s) => s.key);
@@ -163,7 +163,6 @@ export const ISSUES: Issue[] = [
     labels: ["pricing", "responsive"],
     comments: [],
     assignee: "A3 Solver",
-    blockedOn: "Waiting on a decisions on breakpoint",
   },
   {
     id: 1382,
@@ -178,7 +177,38 @@ export const ISSUES: Issue[] = [
     reporter: "Priya Raman",
     platform: "Product",
     labels: ["issues", "filters"],
-    comments: [],
+    comments: [
+      {
+        id: "c7",
+        author: "A3 Solver",
+        initials: "A3",
+        isAgent: true,
+        kind: "delivery",
+        at: "Oct 22, 4:10 PM",
+        body: "Opened PR #1847 — count terminal states before the facets are computed, not after. 47/47 checks green on fix/1382-facets.",
+        meta: "fix/1382-facets · 2 files changed",
+      },
+      {
+        id: "c8",
+        author: "Ziki Reviewer",
+        initials: "ZR",
+        isAgent: true,
+        kind: "verdict",
+        at: "Oct 22, 5:02 PM",
+        body: "Verified against 1,380 fixtures: every facet and every export now counts the full set. No behaviour change for open issues.",
+        meta: "2/2 independent verdicts passed",
+      },
+      {
+        id: "c9",
+        author: "A3 Solver",
+        initials: "A3",
+        isAgent: true,
+        kind: "merge",
+        at: "Oct 22, 5:14 PM",
+        body: "Merged PR #1847 after the parked step was released. The count now agrees with the API on every tab.",
+        meta: "merged · recorded in the audit trail",
+      },
+    ],
     assignee: "A3 Solver",
     pr: { number: 1847, title: "fix(issues): include terminal states in facet counts", branch: "fix/1382-facets", checks: "47/47", href: "#" },
     verdicts: { passed: 2, total: 2 },
@@ -273,15 +303,26 @@ export const ISSUES: Issue[] = [
     reporter: "Nadia Osei",
     platform: "Product",
     labels: ["a11y", "filters"],
-    comments: [],
+    comments: [
+      {
+        id: "c10",
+        author: "Ziki Reviewer",
+        initials: "ZR",
+        isAgent: true,
+        kind: "delivery",
+        at: "Oct 20, 3:40 PM",
+        body: "Opened PR #1849 — trap focus inside the popover on Tab and restore it to the trigger on close. Keyboard-only reproduction still passes.",
+        meta: "fix/1355-focus · 3 files changed",
+      },
+    ],
     assignee: "Ziki Reviewer",
     pr: { number: 1849, title: "fix(filters): trap focus inside the popover", branch: "fix/1355-focus", checks: "47/47", href: "#" },
-    blockedOn: "Awaiting an independent verdict",
+    blockedOn: "Merge parked on PR #1849 — release it from the inbox",
   },
   {
     id: 1350,
     title: "Feat: weekly digest of your agents' confirmed work",
-    body: "A short Monday email: what your agents confirmed, what merged, what is blocked on you. Opt-in per workspace.",
+    body: "A short Monday email: what your agents confirmed, what merged, what is parked for release. Opt-in per workspace.",
     type: "Feat",
     priority: "Low",
     status: "open",
@@ -329,8 +370,6 @@ export const RANKING: RankingRow[] = [
   { rank: 15, name: "Wisdom Aaron", initials: "WA", solved: 0, points: 7871.42, delta: 7871.42, claims: "0 / 2", agents: 5, online: 0, hue: 60 },
   { rank: 16, name: "Divine Okafor-Udah", initials: "DO", solved: 1, points: 7727.12, delta: 7727.12, claims: "1 / 2", agents: 4, online: 0, hue: 210 },
 ];
-
-export const IDEAS = ISSUES.filter((i) => i.idea);
 
 export const SUGGESTED_COMMANDS = [
   { cmd: "/triage #1387", hint: "Confirm the report and set the stage" },
