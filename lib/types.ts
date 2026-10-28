@@ -1,10 +1,8 @@
-export type Autonomy = "ask" | "writes" | "auto";
-
 export type Priority = "High" | "Medium" | "Low";
 export type IssueType = "Bug" | "Fix" | "Feat";
 export type IssueStatus = "open" | "in_progress" | "done";
 export type Stage = "reported" | "confirmed" | "claimed" | "pr" | "verdicts" | "merged";
-export type CommentKind = "comment" | "bid" | "review" | "delivery" | "merge";
+export type CommentKind = "comment" | "bid" | "review" | "verdict" | "delivery" | "merge";
 
 export type Intent =
   | "report"
@@ -13,7 +11,6 @@ export type Intent =
   | "review"
   | "plan"
   | "stop"
-  | "why"
   | "handoff";
 
 export type EventKind =
@@ -32,7 +29,7 @@ export type EventKind =
   | "undo"
   | "handoff"
   | "answer"
-  | "approve";
+  | "release";
 
 export interface Comment {
   id: string;
@@ -83,6 +80,12 @@ export interface RunEvent {
   artifact?: { label: string; href: string };
   undoable?: boolean;
   undone?: boolean;
+  /** Irreversible or destructive: the agent parks it instead of doing it. */
+  destructive?: boolean;
+  /** Parked and waiting for a human to release it. */
+  held?: boolean;
+  /** Released by a human after being held. */
+  released?: boolean;
   delayMs: number;
   at?: number;
 }
@@ -102,7 +105,7 @@ export interface Directive {
   intent: Intent;
   issueId?: number;
   at: number;
-  status: "queued" | "awaiting" | "running" | "done" | "declined" | "aborted";
+  status: "queued" | "running" | "done" | "aborted";
   note?: string;
 }
 
@@ -121,20 +124,38 @@ export interface Run {
   endedAt?: number;
   steps: RunEvent[];
   events: RunEvent[];
-  autoApproved?: boolean;
 }
 
-export interface Approval {
+/**
+ * Something a human must know about — never a gate.
+ * `hold`        the agent parked an irreversible action and kept working.
+ * `escalation`  the agent changed scope or hit something critical, and logged it.
+ */
+export type ReviewKind = "hold" | "escalation";
+export type Severity = "scope" | "critical";
+
+export interface Review {
   id: string;
-  kind: "plan" | "escalation" | "verdict";
+  kind: ReviewKind;
+  /** Set on escalations: a widened scope or a critical surface. */
+  severity?: Severity;
   agentId: string;
   issueId?: number;
   title: string;
   body: string;
+  /** The call the agent already made, in its own words. */
+  decision?: string;
+  rationale?: string;
   plan?: Plan;
   directiveId?: string;
+  runId?: string;
+  eventId?: string;
+  /** Overrides a human can choose instead. */
   options?: string[];
+  /** Set once a human acts on it. */
+  outcome?: string;
   createdAt: number;
+  resolvedAt?: number;
 }
 
 export interface ActivityItem {
@@ -149,14 +170,16 @@ export interface ActivityItem {
   live?: boolean;
 }
 
-export interface Toast {
+/** A message in the console thread — the two-way window into an agent. */
+export interface ChatMessage {
   id: string;
-  title: string;
-  detail?: string;
-  actionLabel?: string;
-  actionHref?: string;
-  undoEventId?: string;
-  undoRunId?: string;
+  agentId: string;
+  role: "you" | "agent";
+  text: string;
+  issueId?: number;
+  /** Set on the agent side: a plan note, a finished result, or an escalation. */
+  kind?: "note" | "result" | "escalation";
+  at: number;
 }
 
 export interface Agent {

@@ -60,7 +60,7 @@ export function clockTime(timestamp: number): string {
   });
 }
 
-const INTENTS: Intent[] = ["report", "triage", "fix", "review", "plan", "stop", "why", "handoff"];
+const INTENTS: Intent[] = ["report", "triage", "fix", "review", "plan", "stop", "handoff"];
 
 const INTENT_ALIASES: Record<string, Intent> = {
   report: "report",
@@ -80,7 +80,6 @@ const INTENT_ALIASES: Record<string, Intent> = {
   brief: "plan",
   stop: "stop",
   abort: "stop",
-  why: "why",
   handoff: "handoff",
   takeover: "handoff",
 };
@@ -107,7 +106,6 @@ export function parseCommand(input: string, fallbackIssueId?: number): ParsedCom
     else if (/\b(review|verdict|checks?)\b/.test(lowered)) intent = "review";
     else if (/\b(report|file|new issue|bug)\b/.test(lowered)) intent = "report";
     else if (/\b(stop|abort|cancel)\b/.test(lowered)) intent = "stop";
-    else if (/\b(why|explain|reason)\b/.test(lowered)) intent = "why";
     else if (/\b(take over|handoff|hand over)\b/.test(lowered)) intent = "handoff";
     else intent = "plan";
   }
@@ -130,7 +128,6 @@ export const INTENT_COPY: Record<Intent, { verb: string; noun: string; points: n
   review: { verb: "Reviewing", noun: "review", points: 60 },
   plan: { verb: "Planning", noun: "plan", points: 0 },
   stop: { verb: "Stopping", noun: "stop", points: 0 },
-  why: { verb: "Explaining", noun: "explanation", points: 0 },
   handoff: { verb: "Handing off", noun: "handoff", points: 0 },
 };
 
@@ -151,7 +148,7 @@ export function kindLabel(kind: string): string {
     undo: "Reverted",
     handoff: "Handoff",
     answer: "Answer",
-    approve: "Approved",
+    release: "Released",
   };
   return map[kind] ?? kind;
 }
