@@ -47,13 +47,61 @@ export function TimelineEvent({
   event,
   last,
   onUndo,
+  compact,
 }: {
   event: RunEvent;
   last?: boolean;
   onUndo?: () => void;
+  /** One line per step: no detail, no rationale. Used by the console rail. */
+  compact?: boolean;
 }) {
   const Icon = ICONS[event.kind] ?? Check;
   const mounted = useMounted();
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2 py-1.5">
+        <span
+          className={cn(
+            "flex h-[18px] w-[18px] flex-none items-center justify-center rounded-full border",
+            event.undone
+              ? "border-[rgb(var(--warn-border))] bg-[rgb(var(--warn-bg))] text-[rgb(var(--warn-fg))]"
+              : "border-[rgb(var(--border))] bg-[rgb(var(--surface))] t-accent",
+          )}
+        >
+          <Icon size={10} strokeWidth={2.4} />
+        </span>
+        <p
+          className={cn(
+            "min-w-0 flex-1 truncate text-[11.5px]",
+            event.undone ? "t-muted line-through" : "t-2",
+          )}
+        >
+          {event.label}
+        </p>
+        {event.held ? (
+          <span className="chip chip-warn h-[17px] flex-none text-[9px]">parked</span>
+        ) : null}
+        {event.released ? (
+          <span className="chip chip-ok h-[17px] flex-none text-[9px]">released</span>
+        ) : null}
+        {event.undoable && !event.undone ? (
+          <button
+            onClick={onUndo}
+            title="Undo this step"
+            aria-label="Undo this step"
+            className="flex-none rounded-md p-1 t-muted transition-colors hover:t-text"
+          >
+            <Undo2 size={11} />
+          </button>
+        ) : null}
+        <span className="w-[32px] flex-none text-right text-[9.5px] t-muted num">
+          {event.at && mounted ? clockTime(event.at) : ""}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="fade-in relative flex gap-3">
       <div className="flex flex-col items-center">
@@ -132,9 +180,37 @@ export function TimelineEvent({
   );
 }
 
-export function RunTimeline({ run }: { run: Run }) {
+export function RunTimeline({ run, compact }: { run: Run; compact?: boolean }) {
   const { undoEvent } = useZiki();
   const next = run.steps[run.events.length];
+
+  if (compact) {
+    return (
+      <div className="px-4 py-2">
+        {run.events.length === 0 ? (
+          <p className="py-1 text-[11.5px] t-muted">Starting…</p>
+        ) : null}
+        {run.events.map((event, index) => (
+          <TimelineEvent
+            key={event.id}
+            event={event}
+            last={index === run.events.length - 1 && !next}
+            onUndo={() => undoEvent(run.id, event.id)}
+            compact
+          />
+        ))}
+        {run.status === "running" && next ? (
+          <div className="flex items-center gap-2 py-1.5">
+            <span className="flex h-[18px] w-[18px] flex-none items-center justify-center rounded-full border border-[rgb(var(--accent))]/40 bg-[rgb(var(--accent-soft))]">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[rgb(var(--accent))]" />
+            </span>
+            <p className="min-w-0 flex-1 truncate text-[11.5px] font-bold t-2">{next.label}</p>
+            <span className="text-[9.5px] t-muted">working…</span>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-4 sm:px-5">
