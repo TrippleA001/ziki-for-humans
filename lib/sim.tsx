@@ -53,14 +53,19 @@ const SEED_RUN_ID = "run-seed-1387";
 
 function seedRuns(): Run[] {
   const issue = ISSUES.find((i) => i.id === 1387);
-  const steps = stepsFor("triage", issue, SEED_RUN_ID);
   // The workspace is already alive: this run started 40 seconds ago and is
-  // mid-flight, so the first thing you see is an agent working.
+  // mid-flight, so the first thing you see is an agent working while the
+  // conversation is still empty. The remaining steps run slower than a fresh
+  // directive so the first visit is not over before it starts.
+  const steps = stepsFor("triage", issue, SEED_RUN_ID).map((step) => ({
+    ...step,
+    delayMs: step.delayMs * 8,
+  }));
   return [
     {
       id: SEED_RUN_ID,
       directiveId: "d-seed-1",
-      agentId: "reviewer",
+      agentId: "solver",
       issueId: 1387,
       intent: "triage",
       title: issue?.title ?? "Triage #1387",
@@ -252,36 +257,27 @@ function seedMessages(): ChatMessage[] {
   const m = (n: number) => NOW - n * 60 * 1000;
   return [
     {
-      id: "msg-1",
+      id: "msg-0a",
       agentId: "reviewer",
       role: "you",
-      text: "/triage #1387 — the About page ships five h1 headings. Confirm it and tell me what it touches.",
-      issueId: 1387,
-      at: m(6),
+      text: "/review #1355",
+      issueId: 1355,
+      at: m(34),
     },
     {
-      id: "msg-2",
+      id: "msg-0b",
       agentId: "reviewer",
       role: "agent",
-      text: "On it. Reading #1387 and the shared marketing layout first, then checking 1,380 issues for duplicates.",
-      issueId: 1387,
+      text: "47/47 green. Verdict posted — the merge is parked for you.",
+      issueId: 1355,
       kind: "note",
-      at: m(5),
-    },
-    {
-      id: "msg-3",
-      agentId: "reviewer",
-      role: "agent",
-      text: "It is one component — the About page composes five section headings through it. I am confirming the report now; the fix can land as its own run.",
-      issueId: 1387,
-      kind: "note",
-      at: m(2),
+      at: m(33),
     },
   ];
 }
 
 const INITIAL: ZikiState = {
-  agentId: "reviewer",
+  agentId: "solver",
   points: 29674.99,
   issues: ISSUES,
   directives: seedDirectives(),
@@ -650,12 +646,12 @@ export function ZikiProvider({ children }: { children: ReactNode }) {
 
       const reply =
         parsed.intent === "stop"
-          ? "Stopping where I stand. Anything already written stays on the record."
+          ? "Stopping where I stand. Everything written so far stays."
           : parsed.intent === "handoff"
-            ? "Handing it over — the claim is yours now."
+            ? "Handing it over — the claim is yours."
             : issueId
-              ? `On it. I'll work #${issueId} and post the result here when it lands.`
-              : "On it. I'll file the report and post the result here when it lands.";
+              ? `On it — #${issueId}. I'll post the result here.`
+              : "On it. I'll file the report and post it here.";
 
       window.setTimeout(() => {
         setState((s) => ({
@@ -1025,10 +1021,10 @@ export function ZikiProvider({ children }: { children: ReactNode }) {
             issueId: filed?.id ?? run.issueId,
             kind: escalation ? ("escalation" as const) : ("result" as const),
             text: filed
-              ? `Filed #${filed.id} — ${filed.title}. It is in the backlog and open for confirmation.`
+              ? `Filed #${filed.id} — ${filed.title}.`
               : escalation
-                ? `Finished #${run.issueId}. ${escalation.title} — it is in your inbox, but nothing is waiting on it.`
-                : `Done with #${run.issueId}. ${gained > 0 ? `+${gained} points, everything logged.` : "Nothing was written."}`,
+                ? `Finished #${run.issueId}. ${escalation.title} — in your inbox.`
+                : `Done with #${run.issueId}.${gained > 0 ? ` +${gained} points.` : ""}`,
             at: Date.now(),
           },
         ].slice(-120),
@@ -1103,8 +1099,8 @@ export function ZikiProvider({ children }: { children: ReactNode }) {
               issueId: run.issueId,
               kind: "escalation" as const,
               text: run.issueId
-                ? `I parked the merge on #${run.issueId}. It is in your inbox — everything else on it is finished.`
-                : "I parked a destructive step. It is in your inbox.",
+                ? `Parked the merge on #${run.issueId}. In your inbox.`
+                : "Parked a destructive step. In your inbox.",
               at: Date.now(),
             },
           ].slice(-120),
