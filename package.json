@@ -2,7 +2,7 @@
   "name": "ziki-for-humans",
   "version": "0.1.0",
   "private": true,
-  "description": "A supervision console for AI agents that work on your issues — brief an agent, approve its plan, and watch every step stream in.",
+  "description": "A supervision console for autonomous AI agents — brief one, watch every step stream in, and release only what it parks.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

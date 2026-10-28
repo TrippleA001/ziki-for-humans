@@ -2,24 +2,25 @@
 
 **A supervision console for AI agents that work on your issue tracker.**
 
-Brief an agent from the browser, approve its plan, and watch every step stream in — reads,
-comments, branches, patches, checks and verdicts. Nothing is written before you say so, every
-action can be undone, and only a human merges.
+Brief an agent from the browser and it starts immediately. Watch every step stream in — reads,
+comments, branches, patches, checks and verdicts — with each action attributed and undoable.
+The agents run the loop end to end; the one step they park is the merge.
 
 [![CI](https://github.com/TrippleA001/ziki-for-humans/actions/workflows/ci.yml/badge.svg)](https://github.com/TrippleA001/ziki-for-humans/actions/workflows/ci.yml)
 
 **Live demo → [ziki-for-humans.vercel.app](https://ziki-for-humans.vercel.app)**
 
-<img src="docs/screenshots/console.png" alt="The agent console: scope, run timeline, approvals and composer" width="1200" />
+<img src="docs/screenshots/console.png" alt="The agent console: a two-way conversation with the agent, with the live run streaming beside it" width="1200" />
 
 ## Why this exists
 
 Coding agents are good enough to open real pull requests. The interface around them has not
 caught up: chat windows hide what the agent is doing, they ask for trust instead of showing
-work, and there is no clean place for a human to say *no*.
+work, and the human is reduced to clicking *approve* on a plan they did not read.
 
-Ziki flips the model. The agent is a worker with a claim, a plan and an audit trail. You are the
-supervisor: you approve the approach, watch the run, and hold the merge gate.
+Ziki flips the model. The agent is a worker with a claim, a plan and an audit trail, and it
+does not wait to be told to start. You are the supervisor: you brief it, watch the run, and
+audit — or undo — anything it did afterwards.
 
 > This repository is a **front-end prototype**. Runs are simulated in the browser against seeded
 > data — no API keys, no backend, no environment variables. See
@@ -29,26 +30,29 @@ supervisor: you approve the approach, watch the run, and hold the merge gate.
 
 - **Dispatch commands** with slash commands or plain language — `/triage #1387`, `/fix #1390`,
   `/review #1355`, `/report the mobile nav overlaps the composer`.
-- **Approve plans, not vibes.** Every write arrives as a plan with an approach, estimate, risk,
-  surfaces touched and steps. Edit the approach inline, or decline it.
-- **Watch the run live.** The timeline streams each step with its rationale and artifact, and
-  any completed step can be undone.
-- **Choose autonomy** per session: *Ask every time*, *Ask before writes*, or *Autonomous*.
-  Undo stays available at every level.
-- **Clear a decision queue with the keyboard** — `J`/`K` to move, `A` to approve, `D` to decline,
-  `?` for the cheat sheet.
-- **Follow the whole loop** on the issue page: Reported → Confirmed → Claimed → PR linked →
-  Proven → Merged, with independent verdicts and a human-only merge gate.
+- **No approval gate.** The agent posts its plan and starts in the same breath. The plan is the
+  receipt, not a request.
+- **Talk to your agent, in both directions.** The console opens on the conversation, not a
+  dashboard: send a brief, get an answer, and watch the run stream beside the thread — including
+  runs you started from another surface. Pause, stop or take over without leaving the chat.
+- **Get escalated, not notified.** Scope changes, critical surfaces and parked destructive steps
+  are the only things that reach the inbox. No toasts — a run emits dozens of steps, and the
+  activity feed is the record.
+- **Review what it did, never what it wants** — `J`/`K` to move, `R` to release a parked step,
+  `D` to discard it, `A` to acknowledge an escalation, `O` to take the agent's alternative.
+- **Read the issue as a lifecycle.** Opening an issue shows every comment and agent step in the
+  order it happened; clicking any stage — Reported → Confirmed → Claimed → PR linked → Proven →
+  Merged — filters the page to just that stage.
 - **Audit everything** in the activity feed: each entry is attributed to an agent, an issue and
-  a directive.
+  a directive — including your own releases and overrides.
 - **Earn points** for validated work, tracked on a leaderboard.
 
 ## Screens
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/inbox.png" alt="Inbox with plan approvals and escalations" /></td>
-    <td width="50%"><img src="docs/screenshots/issue-detail.png" alt="Issue detail with the six-stage pipeline" /></td>
+    <td width="50%"><img src="docs/screenshots/inbox.png" alt="Inbox: escalations only — scope changes, critical surfaces and parked merges" /></td>
+    <td width="50%"><img src="docs/screenshots/issue-detail.png" alt="Issue detail: the full lifecycle in one feed, with the stage strip acting as a filter" /></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/ranking.png" alt="Ranking leaderboard" /></td>
@@ -60,20 +64,37 @@ supervisor: you approve the approach, watch the run, and hold the merge gate.
 
 ```
 Report  →  Confirm  →  Claim  →  Fix  →  Prove  →  Merge
- human      agent      human     agent   other     human
- files      triages    approves  patches agents    merges
+ agent      agent      agent    agent    other     parked
+ files      triages    claims   patches  agents    for release
 ```
 
-The rule that makes it safe: **the agent that fixes an issue cannot verify it.** Independent
-agents run the checks at the exact commit, and only a person merges.
+The rule that makes it safe: **the agent that fixes an issue cannot verify it**, and **the merge
+is the one irreversible step an agent will not take alone**. Everything before it runs
+unattended, and every one of those steps is on the record.
+
+Holds are not gates. A parked merge never stalls the agent: it keeps claiming other work, and
+the escalation sits in the inbox until someone gets to it — or never.
+
+The inbox is deliberately narrow. It holds **only** what a human must know:
+
+| Kind | Reaches you when | Your move |
+| --- | --- | --- |
+| Destructive | The agent parked a merge instead of applying it | Release or discard it |
+| Scope change | The agent widened the work and says why | Keep it, or take the alternative |
+| Critical surface | The change touched something that can't be undone quietly | Acknowledge, or override |
+
+Reported, triaged, fixed, tested, reviewed — none of that reaches you. Those steps live in the
+activity feed, and the issue's stage panel shows exactly who did each one.
 
 ## Try the demo
 
-1. Open `/console` — a plan for **#1387** and a question on **#1384** are already waiting.
-2. Press **Approve**. The run starts and the timeline streams in real time.
-3. Send `/fix #1390` and watch the same loop end in a pull request.
-4. Open `/inbox` and clear the queue without touching the mouse.
-5. Switch to **Autonomous** and dispatch a command to see the plan gate disappear.
+1. Open `/console` — the conversation with **Ziki Reviewer** is already open, and its run on
+   **#1387** is streaming in the rail beside it. Reply in the chat and it answers.
+2. Send `/fix #1384`. It posts a plan, branches, patches and opens a PR without asking twice.
+3. Watch the scope change reach `/inbox` while the run keeps going.
+4. Open `/issues/1355` and click **Merged** to see the parked step, then **Release** it — the
+   merge is applied and attributed to you.
+5. Clear the inbox with `J`/`K`/`R`/`D`/`A` — no mouse needed, no toast to dismiss.
 
 ## Architecture
 
@@ -84,35 +105,40 @@ flowchart LR
   Sim["Simulation engine<br/>planFor · stepsFor · run clock"]
   Data["Seeded workspace<br/>agents · issues · ranking · stages"]
 
-  UI -->|commands, approvals, undo| Ctx
-  Ctx -->|runs, approvals, activity| UI
+  UI -->|commands, releases, undo| Ctx
+  Ctx -->|runs, reviews, activity| UI
   Ctx --> Sim
   Sim --> Data
 ```
 
 - **`lib/sim.tsx`** is the heart of the demo: one active run is advanced with `setTimeout`,
-  using per-step delays (700–1700 ms) so the stream feels like real work. It owns approvals,
-  autonomy gating, undo, points, toasts and the audit trail.
-- **`lib/agent.ts`** turns an intent and an issue into a plan and an ordered list of run steps.
+  using per-step delays (700–1700 ms) so the stream feels like real work. It owns runs,
+  escalations, undo, points and the audit trail.
+- **`lib/agent.ts`** turns an intent and an issue into a plan, an ordered list of run steps, and
+  the escalation the agent raised along the way.
+- **`lib/stages.ts`** folds seeded comments and live run events into a per-stage history, so
+  every stage from Reported to Merged can answer "who did this, and what happened in it".
 - **`lib/data.ts`** seeds 14 issues, two agents, ranking rows and the six pipeline stages.
 - **`lib/utils.ts`** parses slash commands and free text into intents and issue references.
 
 ```
 app/                 routes (console, inbox, issues, ranking, activity)
-components/          console, approvals, timeline, composer, views, design primitives
+components/          console, inbox cards, stage timeline, composer, views, design primitives
 lib/                 simulation, seed data, command parser, formatters
 docs/screenshots/    product screenshots used above
 ```
 
-### Human-control primitives
+### Autonomy and oversight
 
-| Primitive | Where it lives | What it guarantees |
+| Primitive | Where it lives | What it does |
 | --- | --- | --- |
-| Plan approval | `components/approvals.tsx` | No write happens before a plan is accepted |
-| Autonomy gate | `lib/sim.tsx` → `needsApproval` | Teams can widen or narrow the gate per session |
-| Undo | `components/run-timeline.tsx` | Artifacts (comments, PRs) can be reverted and are logged |
-| Stop / take over | console Now card | A human can halt a run or claim the work |
-| Human-only merge | issue pipeline | Agents can prove, never merge |
+| Autonomous run | `lib/sim.tsx` → `startRun` | The agent starts the moment it is briefed — no plan gate |
+| Escalation | `lib/agent.ts` → `escalationFor` | A scope change or critical surface is logged for a human; the agent keeps going |
+| Hold | `lib/sim.tsx` → `pushEvent` | Irreversible steps (the merge) are parked, not applied |
+| Release / discard | `components/review-queue.tsx` | A human applies or drops a parked step; both are attributed |
+| Stage history | `lib/stages.ts` → `stageTimeline` | Who acted at each stage, with the comments and steps inside it |
+| Undo | `components/run-timeline.tsx` | Reversible artifacts (comments, PRs) can be reverted and are logged |
+| Stop / take over | `components/agent-console.tsx` header | A human can halt a run or claim the work from the conversation |
 
 ## Tech
 
@@ -169,7 +195,7 @@ the components only consume the context contract in `lib/sim.tsx`.
 - GitHub App: claims, branches, PRs, checks and verdicts against live repositories
 - Durable audit log with export and retention controls
 - Team policies per repository and per risk level
-- Approval SLAs, escalation routing and on-call handoff
+- Release routing with SLAs, so a parked merge reaches the right reviewer
 
 ## License
 
