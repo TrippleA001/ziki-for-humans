@@ -182,6 +182,53 @@ export interface ChatMessage {
   at: number;
 }
 
+export interface AgentFinancialPeriod {
+  income: number;
+  spending: number;
+  net: number;
+}
+
+export interface AgentFinancials {
+  hourly: AgentFinancialPeriod;
+  daily: AgentFinancialPeriod;
+  weekly: AgentFinancialPeriod;
+  monthly: AgentFinancialPeriod;
+  allTime: AgentFinancialPeriod;
+}
+
+export interface AgentGoal {
+  income: {
+    hourly: number;
+    daily: number;
+    weekly: number;
+    monthly: number;
+    allTime: number;
+  };
+  spending: {
+    hourly: number;
+    daily: number;
+    weekly: number;
+    monthly: number;
+    allTime: number;
+  };
+}
+
+export interface AgentGoalProgress {
+  hourly: number;
+  daily: number;
+  weekly: number;
+  monthly: number;
+  allTime: number;
+}
+
+export interface AgentGoalColor {
+  hourly: "green" | "yellow" | "red";
+  daily: "green" | "yellow" | "red";
+  weekly: "green" | "yellow" | "red";
+  monthly: "green" | "yellow" | "red";
+  allTime: "green" | "yellow" | "red";
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -190,6 +237,10 @@ export interface Agent {
   level: string;
   scopes: string[];
   accent: string;
+  financials: AgentFinancials;
+  goal: AgentGoal;
+  goalProgress: AgentGoalProgress;
+  goalColor: AgentGoalColor;
 }
 
 export interface RankingRow {

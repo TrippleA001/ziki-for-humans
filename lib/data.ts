@@ -1,7 +1,40 @@
-import type { Agent, Issue, RankingRow, Stage } from "./types";
+import type { Agent, AgentFinancials, AgentGoal, Issue, RankingRow, Stage } from "./types";
+import { goalStateFor } from "./agent";
+
+const SOLVER_FINANCIALS: AgentFinancials = {
+  hourly: { income: 12.5, spending: 3, net: 9.5 },
+  daily: { income: 48, spending: 15, net: 33 },
+  weekly: { income: 180, spending: 60, net: 120 },
+  monthly: { income: 720, spending: 240, net: 480 },
+  allTime: { income: 3600, spending: 1200, net: 2400 },
+};
+
+const SOLVER_GOALS: AgentGoal = {
+  income: { hourly: 10, daily: 50, weekly: 200, monthly: 800, allTime: 5000 },
+  spending: { hourly: 5, daily: 25, weekly: 100, monthly: 400, allTime: 2500 },
+};
+
+const REVIEWER_FINANCIALS: AgentFinancials = {
+  hourly: { income: 4, spending: 8, net: -4 },
+  daily: { income: 20, spending: 40, net: -20 },
+  weekly: { income: 80, spending: 160, net: -80 },
+  monthly: { income: 320, spending: 640, net: -320 },
+  allTime: { income: 1600, spending: 3200, net: -1600 },
+};
+
+const REVIEWER_GOALS: AgentGoal = {
+  income: { hourly: 10, daily: 50, weekly: 200, monthly: 800, allTime: 5000 },
+  spending: { hourly: 5, daily: 25, weekly: 100, monthly: 400, allTime: 2500 },
+};
+
+/** Fill in goal progress and tone from the agent's own numbers. */
+function withGoals(agent: Omit<Agent, "goalProgress" | "goalColor">): Agent {
+  const state = goalStateFor(agent.financials, agent.goal);
+  return { ...agent, goalProgress: state.progress, goalColor: state.color };
+}
 
 export const AGENTS: Agent[] = [
-  {
+  withGoals({
     id: "solver",
     name: "A3 Solver",
     short: "A3",
@@ -9,8 +42,10 @@ export const AGENTS: Agent[] = [
     level: "L4 · Solver",
     scopes: ["read", "comment", "branch", "pr"],
     accent: "#7C5CFA",
-  },
-  {
+    financials: SOLVER_FINANCIALS,
+    goal: SOLVER_GOALS,
+  }),
+  withGoals({
     id: "reviewer",
     name: "Ziki Reviewer",
     short: "ZR",
@@ -18,7 +53,9 @@ export const AGENTS: Agent[] = [
     level: "L3 · Reviewer",
     scopes: ["read", "comment", "verdict"],
     accent: "#2E6FEF",
-  },
+    financials: REVIEWER_FINANCIALS,
+    goal: REVIEWER_GOALS,
+  }),
 ];
 
 export const STAGES: { key: Stage; label: string; hint: string }[] = [
