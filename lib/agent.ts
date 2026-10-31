@@ -1,4 +1,10 @@
-import type { Issue, Plan, RunEvent } from "./types";
+import type { Agent, AgentFinancialPeriod, AgentFinancials, AgentGoal, AgentGoalProgress, AgentGoalColor, Issue, Plan, RunEvent } from "./types";
+
+const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
+  "Claude Sonnet": { input: 3, output: 15 },
+  "DeepSeek V4.1": { input: 1, output: 5 },
+  "GPT-4": { input: 10, output: 30 },
+};
 
 function trimTitle(raw: string): string {
   const cleaned = raw
@@ -309,4 +315,228 @@ export function escalationFor(
 
 export function reportBody(raw: string): string {
   return `${trimTitle(raw)}\n\nReported from the agent console. The agent will attach repro steps and expected/actual before filing.`;
+}
+export const INCOME_FACTOR = 0.10; // 1 point = $0.10
+
+// Estimate tokens per action based on intent
+const ESTIMATED_TOKENS_PER_ACTION: Record<string, number> = {
+  report: 800,
+  triage: 500,
+  fix: 1000,
+  review: 600,
+  plan: 400,
+};
+
+/**
+ * Calculate income from intent points
+ * Points × INCOME_FACTOR = dollars earned
+ */
+export function calculateIntentIncome(intent: string): number {
+  const points = INTENT_POINTS[intent] || 0;
+  return Math.round(points * INCOME_FACTOR * 100) / 100; // round to 2 decimal places
+}
+
+/**
+ * Estimate token cost for an action based on agent model
+ */
+export function calculateTokenCost(model: string, intent: string, isInput: boolean = true): number {
+  const costs: { input: number; output: number } = TOKEN_COSTS[model] || TOKEN_COSTS["Claude Sonnet"];
+  const tokens = ESTIMATED_TOKENS_PER_ACTION[intent] || 500;
+  const costPerK = isInput ? costs.input : costs.output;
+  return Math.round((tokens / 1000) * costPerK * 100) / 100;
+}
+
+/**
+ * Update agent financials after a run completes
+ * Adds income based on intent points and spending based on token usage
+ */
+export function updateAgentFinancials(
+  agent: Agent,
+  intent: string,
+  model: string,
+  runDurationMs: number
+): Agent {
+  // Calculate income from this action
+  const income = calculateIntentIncome(intent);
+
+  // Estimate token cost and calculate spending
+  const tokenCost = calculateTokenCost(model, intent, true); // input tokens
+  const spending = tokenCost;
+
+  // Update financials - aggregate per time period
+  const now = Date.now();
+  const hourAgo = now - 3_600_000; // 1 hour ago
+  const dayAgo = now - 86_400_000; // 24 hours ago
+  const weekAgo = now - 604_800_000; // 7 days ago
+  const monthAgo = now - 2_592_000_000; // 30 days ago
+
+  // Helper to update a period's financials
+  const updatePeriod = (
+    periodStart: number,
+    periodEnd: number,
+    currentPeriod: AgentFinancialPeriod
+  ): AgentFinancialPeriod => {
+    const actionInPeriod = now >= periodStart && now <= periodEnd ? 1 : 0;
+    return {
+      income: currentPeriod.income + income,
+      spending: currentPeriod.spending + spending,
+      net: currentPeriod.net + income - spending,
+    };
+  };
+
+  // Create updated financials
+  const updatedFinancials: AgentFinancials = {
+    hourly: updatePeriod(hourAgo, now, agent.financials.hourly),
+    daily: updatePeriod(dayAgo, now, agent.financials.daily),
+    weekly: updatePeriod(weekAgo, now, agent.financials.weekly),
+    monthly: updatePeriod(monthAgo, now, agent.financials.monthly),
+    allTime: {
+      income: agent.financials.allTime.income + income,
+      spending: agent.financials.allTime.spending + spending,
+      net: agent.financials.allTime.net + income - spending,
+    },
+  };
+
+  // Update goal progress
+  const updatedGoalProgress: AgentGoalProgress = {
+    hourly: Math.min(100, ((updatedFinancials.hourly.income / agent.goal.income.hourly) * 100) || 0),
+    daily: Math.min(100, ((updatedFinancials.daily.income / agent.goal.income.daily) * 100) || 0),
+    weekly: Math.min(100, ((updatedFinancials.weekly.income / agent.goal.income.weekly) * 100) || 0),
+    monthly: Math.min(100, ((updatedFinancials.monthly.income / agent.goal.income.monthly) * 100) || 0),
+    allTime: Math.min(100, ((updatedFinancials.allTime.income / agent.goal.income.allTime) * 100) || 0),
+  };
+
+  // Determine goal color (green >= 100%, yellow 70-99%, red < 70%)
+  const updatedGoalColor: AgentGoalColor = {
+    hourly: updatedGoalProgress.hourly >= 100 ? "green" : updatedGoalProgress.hourly >= 70 ? "yellow" : "red",
+    daily: updatedGoalProgress.daily >= 100 ? "green" : updatedGoalProgress.daily >= 70 ? "yellow" : "red",
+    weekly: updatedGoalProgress.weekly >= 100 ? "green" : updatedGoalProgress.weekly >= 70 ? "yellow" : "red",
+    monthly: updatedGoalProgress.monthly >= 100 ? "green" : updatedGoalProgress.monthly >= 70 ? "yellow" : "red",
+    allTime: updatedGoalProgress.allTime >= 100 ? "green" : updatedGoalProgress.allTime >= 70 ? "yellow" : "red",
+  };
+
+  return {
+    ...agent,
+    financials: updatedFinancials,
+    goalProgress: updatedGoalProgress,
+    goalColor: updatedGoalColor,
+  };
+}
+
+/**
+ * Get account-wide financial totals across all agents
+ */
+export function getAccountFinancialTotals(agents: Agent[]) {
+  const totals = {
+    hourly: { income: 0, spending: 0, net: 0 },
+    daily: { income: 0, spending: 0, net: 0 },
+    weekly: { income: 0, spending: 0, net: 0 },
+    monthly: { income: 0, spending: 0, net: 0 },
+    allTime: { income: 0, spending: 0, net: 0 },
+  };
+
+  agents.forEach((agent) => {
+    totals.hourly.income += agent.financials.hourly.income;
+    totals.hourly.spending += agent.financials.hourly.spending;
+    totals.hourly.net += agent.financials.hourly.net;
+
+    totals.daily.income += agent.financials.daily.income;
+    totals.daily.spending += agent.financials.daily.spending;
+    totals.daily.net += agent.financials.daily.net;
+
+    totals.weekly.income += agent.financials.weekly.income;
+    totals.weekly.spending += agent.financials.weekly.spending;
+    totals.weekly.net += agent.financials.weekly.net;
+
+    totals.monthly.income += agent.financials.monthly.income;
+    totals.monthly.spending += agent.financials.monthly.spending;
+    totals.monthly.net += agent.financials.monthly.net;
+
+    totals.allTime.income += agent.financials.allTime.income;
+    totals.allTime.spending += agent.financials.allTime.spending;
+    totals.allTime.net += agent.financials.allTime.net;
+  });
+
+  return totals;
+}
+
+/**
+ * Get account-wide goal progress
+ */
+export function getAccountGoalProgress(agents: Agent[]) {
+  const goalTargets = {
+    hourly: 10,
+    daily: 50,
+    weekly: 200,
+    monthly: 800,
+    allTime: 5000,
+  };
+
+  // Calculate account-wide income totals from all agents
+  const goalTotals = {
+    hourly: 0,
+    daily: 0,
+    weekly: 0,
+    monthly: 0,
+    allTime: 0,
+  };
+
+  agents.forEach((agent) => {
+    goalTotals.hourly += agent.financials.hourly.income;
+    goalTotals.daily += agent.financials.daily.income;
+    goalTotals.weekly += agent.financials.weekly.income;
+    goalTotals.monthly += agent.financials.monthly.income;
+    goalTotals.allTime += agent.financials.allTime.income;
+  });
+
+  const progress: AgentGoalProgress = {
+    hourly: goalTotals.hourly > 0 ? Math.min(100, (goalTotals.hourly / goalTargets.hourly) * 100) : 0,
+    daily: goalTotals.daily > 0 ? Math.min(100, (goalTotals.daily / goalTargets.daily) * 100) : 0,
+    weekly: goalTotals.weekly > 0 ? Math.min(100, (goalTotals.weekly / goalTargets.weekly) * 100) : 0,
+    monthly: goalTotals.monthly > 0 ? Math.min(100, (goalTotals.monthly / goalTargets.monthly) * 100) : 0,
+    allTime: goalTotals.allTime > 0 ? Math.min(100, (goalTotals.allTime / goalTargets.allTime) * 100) : 0,
+  };
+
+  const goalColor: AgentGoalColor = {
+    hourly: progress.hourly >= 100 ? "green" : progress.hourly >= 70 ? "yellow" : "red",
+    daily: progress.daily >= 100 ? "green" : progress.daily >= 70 ? "yellow" : "red",
+    weekly: progress.weekly >= 100 ? "green" : progress.weekly >= 70 ? "yellow" : "red",
+    monthly: progress.monthly >= 100 ? "green" : progress.monthly >= 70 ? "yellow" : "red",
+    allTime: progress.allTime >= 100 ? "green" : progress.allTime >= 70 ? "yellow" : "red",
+  };
+
+  return { ...progress, goalColor };
+}
+
+/**
+ * Goal progress and tone for one agent, derived from its own financials so the
+ * seeded numbers and the UI cannot drift apart.
+ */
+export function goalStateFor(
+  financials: AgentFinancials,
+  goal: AgentGoal,
+): { progress: AgentGoalProgress; color: AgentGoalColor } {
+  const share = (value: number, target: number) =>
+    target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+  const tone = (value: number): AgentGoalColor["hourly"] =>
+    value >= 100 ? "green" : value >= 70 ? "yellow" : "red";
+
+  const progress: AgentGoalProgress = {
+    hourly: share(financials.hourly.income, goal.income.hourly),
+    daily: share(financials.daily.income, goal.income.daily),
+    weekly: share(financials.weekly.income, goal.income.weekly),
+    monthly: share(financials.monthly.income, goal.income.monthly),
+    allTime: share(financials.allTime.income, goal.income.allTime),
+  };
+
+  return {
+    progress,
+    color: {
+      hourly: tone(progress.hourly),
+      daily: tone(progress.daily),
+      weekly: tone(progress.weekly),
+      monthly: tone(progress.monthly),
+      allTime: tone(progress.allTime),
+    },
+  };
 }
