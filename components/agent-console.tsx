@@ -86,11 +86,11 @@ export function ConsoleView() {
             ))}
           </div>
           <Link
-            href="/manage-agents"
+            href="/financials"
             className="flex items-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-2.5 py-1.5 text-[11px] font-bold t-2 transition-colors hover:bg-[rgb(var(--tint))]"
           >
             <Wallet size={12} className="t-accent" />
-            Manage agents
+            Financials
           </Link>
         </div>
       </div>

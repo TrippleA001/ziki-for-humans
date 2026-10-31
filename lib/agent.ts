@@ -340,10 +340,15 @@ export function calculateIntentIncome(intent: string): number {
  * Estimate token cost for an action based on agent model
  */
 export function calculateTokenCost(model: string, intent: string, isInput: boolean = true): number {
-  const costs: { input: number; output: number } = TOKEN_COSTS[model] || TOKEN_COSTS["Claude Sonnet"];
+  const costs = modelRates(model);
   const tokens = ESTIMATED_TOKENS_PER_ACTION[intent] || 500;
   const costPerK = isInput ? costs.input : costs.output;
   return Math.round((tokens / 1000) * costPerK * 100) / 100;
+}
+
+/** Published token rates for a model, per million tokens. */
+export function modelRates(model: string): { input: number; output: number } {
+  return TOKEN_COSTS[model] ?? TOKEN_COSTS["Claude Sonnet"];
 }
 
 /**
