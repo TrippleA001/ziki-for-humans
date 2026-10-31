@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Hand, Inbox, Pause, Play, Square } from "lucide-react";
+import { ArrowUpRight, Hand, Inbox, Pause, Play, Square, Wallet } from "lucide-react";
 import { AGENTS } from "@/lib/data";
 import { useNow } from "@/lib/use-now";
 import { useZiki } from "@/lib/sim";
@@ -67,25 +67,33 @@ export function ConsoleView() {
         <h1 className="text-[22px] font-extrabold leading-tight tracking-[-0.02em] t-text">
           Your agent
         </h1>
-        <div className="flex items-center gap-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-1">
-          {AGENTS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setAgent(item.id)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-[11.5px] font-bold transition-colors",
-                state.agentId === item.id
-                  ? "bg-[rgb(var(--accent-soft))] t-accent"
-                  : "t-muted hover:bg-[rgb(var(--chip))]",
-              )}
-            >
-              <Avatar name={item.name} hue={item.id === "reviewer" ? 214 : 262} size={20} />
-              {item.name}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface))] p-1">
+            {AGENTS.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setAgent(item.id)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-[11.5px] font-bold transition-colors",
+                  state.agentId === item.id
+                    ? "bg-[rgb(var(--accent-soft))] t-accent"
+                    : "t-muted hover:bg-[rgb(var(--chip))]",
+                )}
+              >
+                <Avatar name={item.name} hue={item.id === "reviewer" ? 214 : 262} size={20} />
+                {item.name}
+              </button>
+            ))}
+          </div>
+          <Link
+            href="/manage-agents"
+            className="flex items-center gap-1.5 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--surface))] px-2.5 py-1.5 text-[11px] font-bold t-2 transition-colors hover:bg-[rgb(var(--tint))]"
+          >
+            <Wallet size={12} className="t-accent" />
+            Manage agents
+          </Link>
         </div>
       </div>
-
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* ------------------------------------------------------------ chat */}
         <section className="card flex min-h-[520px] flex-col overflow-hidden lg:h-[calc(100vh-232px)]">
