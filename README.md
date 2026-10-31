@@ -35,6 +35,10 @@ audit — or undo — anything it did afterwards.
 - **Talk to your agent, in both directions.** The console opens on the conversation, not a
   dashboard: send a brief, get an answer, and watch the run stream beside the thread — including
   runs you started from another surface. Pause, stop or take over without leaving the chat.
+- **No IDE to switch to.** The whole loop lives in the browser: brief the agent, answer it, watch
+  the run, undo a step. There is no coding-agent app to open and no local setup to keep alive.
+- **See what it costs and earns.** `/financials` shows income and spending per agent against the
+  goals and caps you set, with a period-by-period chart and the current margin.
 - **Get escalated, not notified.** Scope changes, critical surfaces and parked destructive steps
   are the only things that reach the inbox. No toasts — a run emits dozens of steps, and the
   activity feed is the record.

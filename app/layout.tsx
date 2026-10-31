@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { AnnouncementBar } from "@/components/announcement-bar";
 import { TopBar } from "@/components/top-bar";
 
 export const metadata: Metadata = {
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-app">
         <Providers>
+          <AnnouncementBar />
           <TopBar />
           <main className="mx-auto w-full max-w-shell px-4 pb-24 pt-6 sm:px-6 sm:pt-8">
             {children}
